@@ -5,6 +5,7 @@ import LearningJourney from "../pages/LearningJourney";
 import App from"../App"
 import Login from "../components/auth/Login";
 import Singup from "../components/auth/Singup";
+import CodeEntry from "../components/codexplainer/CodeEntry";
 
 
 const router = createBrowserRouter([
@@ -22,6 +23,10 @@ const router = createBrowserRouter([
   {
     path:"/login",
     element:<Login/> // Login page
+  },
+  {
+    path:"/codexplainer",
+    element:<CodeEntry />
   },
   {
     path:"/signup",

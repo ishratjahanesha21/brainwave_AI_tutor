@@ -54,17 +54,22 @@ export const navigation = [
   },
   {
     id: "3",
+    title: "Codexplainer",
+    url: "/codexplainer",
+  },
+  {
+    id: "4",
     title: "Course",
     url: "/course",
   },
   {
-    id: "4",
+    id: "5",
     title: "New account",
     url: "/signup",
     onlyMobile: true,
   },
   {
-    id: "5",
+    id: "6",
     title: "Sign in",
     url: "/login",
     onlyMobile: true,

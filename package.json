@@ -13,10 +13,12 @@
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.12.2",
     "lucide-react": "^0.545.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.3.0-canary-2bcbf254-20251020",
+    "react-dom": "^19.3.0-canary-2bcbf254-20251020",
     "react-just-parallax": "^3.1.16",
+    "react-markdown": "^8.0.7",
     "react-router-dom": "^6.22.1",
+    "remark-gfm": "^3.0.1",
     "scroll-lock": "^2.1.5"
   },
   "devDependencies": {
