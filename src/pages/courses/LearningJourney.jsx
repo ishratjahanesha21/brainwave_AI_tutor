@@ -1,7 +1,8 @@
-import { Book, Check, ChevronRight, Code, LogOut, Menu, Play, Sparkles, Trophy, X, Zap } from "lucide-react";
+import { AlertCircle, Book, Check, ChevronRight, Code, Loader, LogOut, Menu, Play, Sparkles, Trophy, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { coursesData } from "../constants";
+import { coursesData } from "../../constants";
 import CourseDetailPage from "./CourseDetailPage";
+
 
 const conceptDetails = {
   python_c1: {
@@ -366,12 +367,15 @@ function CoursesPage({ courses, onNavigate }) {
 // }
 <CourseDetailPage />
 
-function ConceptPage({ course, milestone, concept, onNavigate, userProgress, setUserProgress }) {
+function ConceptPage({ course, milestone, concept, onNavigate, userProgress, setUserProgress, updateStats }) {
   const [tab, setTab] = useState('theory');
   const [code, setCode] = useState('');
   const [output, setOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [aiHelp, setAiHelp] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [executionError, setExecutionError] = useState(null);
 
   const conceptKey = `${course.id}_${concept.id}`;
   const details = conceptDetails[conceptKey] || {
@@ -381,35 +385,80 @@ function ConceptPage({ course, milestone, concept, onNavigate, userProgress, set
       description: 'Complete the coding challenge',
       starterCode: '# Write your code here\n',
       solution: '',
-      testCases: []
     }
   };
 
   useEffect(() => {
     setCode(details.challenge.starterCode);
+    setOutput('');
+    setShowAI(false);
+    setExecutionError(null);
   }, [concept.id]);
 
-  const runCode = () => {
-    setOutput('Code executed successfully!\n\n✓ All test cases passed');
-  };
-
-  const submitCode = () => {
-    const newProgress = { ...userProgress, [conceptKey]: true };
-    setUserProgress(newProgress);
-    setOutput('✓ Challenge completed! Moving to next concept...');
-    setTimeout(() => {
-      const currentIdx = milestone.concepts.findIndex(c => c.id === concept.id);
-      if (currentIdx < milestone.concepts.length - 1) {
-        onNavigate('concept', { course, milestone, concept: milestone.concepts[currentIdx + 1] });
+  const runCode = async () => {
+    setIsRunning(true);
+    setOutput('⏳ Running code with Judge0 API...\n');
+    setExecutionError(null);
+    
+    try {
+      const result = await executeCode(code, course.id);
+      
+      if (result.success) {
+        setOutput(`✓ Success!\n\n${result.output}\n\n⏱️ Execution Time: ${result.executionTime}`);
       } else {
-        onNavigate('course-detail', { course });
+        setOutput(`❌ Error:\n\n${result.output}\n\n⏱️ Execution Time: ${result.executionTime}`);
+        setExecutionError(result.output);
       }
-    }, 1500);
+    } catch (error) {
+      setOutput(`❌ Unexpected Error:\n\n${error.message}`);
+      setExecutionError(error.message);
+    }
+    
+    setIsRunning(false);
   };
 
-  const getAIHelp = () => {
+  const submitCode = async () => {
+    setIsRunning(true);
+    setOutput('⏳ Submitting code for evaluation...\n');
+    setExecutionError(null);
+    
+    try {
+      const result = await executeCode(code, course.id);
+      
+      if (result.success) {
+        const newProgress = { ...userProgress, [conceptKey]: true };
+        setUserProgress(newProgress);
+        updateStats('complete');
+        setOutput(`🎉 Challenge Completed!\n\nGreat job! You've successfully completed "${concept.title}"!\n\n✓ +50 Points earned\n⏱️ Execution Time: ${result.executionTime}\n\n🚀 Moving to next concept...`);
+        
+        setTimeout(() => {
+          const currentIdx = milestone.concepts.findIndex(c => c.id === concept.id);
+          if (currentIdx < milestone.concepts.length - 1) {
+            onNavigate('concept', { course, milestone, concept: milestone.concepts[currentIdx + 1] });
+          } else {
+            onNavigate('course-detail', { course });
+          }
+        }, 3000);
+      } else {
+        setOutput(`❌ Tests Failed:\n\n${result.output}\n\n⏱️ Execution Time: ${result.executionTime}\n\n💡 Tip: Review your code and try again, or click "Hint" for help!`);
+        setExecutionError(result.output);
+      }
+    } catch (error) {
+      setOutput(`❌ Submission Error:\n\n${error.message}`);
+      setExecutionError(error.message);
+    }
+    
+    setIsRunning(false);
+  };
+
+  const getAIHelp = async (mode) => {
     setShowAI(true);
-    setAiHelp('💡 **AI Hint**: Start by creating variables with the specified names. Remember that strings use quotes, integers are whole numbers, and floats have decimal points.\n\nTry this pattern:\n```\nvariable_name = value\n```');
+    setAiLoading(true);
+    updateStats('ai_help');
+    
+    const response = await getAIAssistance(code, details.challenge.title, mode, course.id);
+    setAiHelp(response);
+    setAiLoading(false);
   };
 
   return (
@@ -424,6 +473,41 @@ function ConceptPage({ course, milestone, concept, onNavigate, userProgress, set
         </button>
         <h1 className="text-3xl font-bold text-white">{concept.title}</h1>
         <p className="text-gray-400 mt-2">{milestone.title}</p>
+        
+        {/* API Status Indicators */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-lg ${
+            // isJudge0Configured() ?
+               'bg-green-500/20 border border-green-500/30' 
+              // : 'bg-red-500/20 border border-red-500/30'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              //isJudge0Configured() ? 
+              'bg-green-400 animate-pulse' 
+              //: 'bg-red-400'
+            }`}></div>
+            {/* <span className={`text-sm ${
+              isJudge0Configured() ? 'text-green-300' : 'text-red-300'
+            }`}>
+              Judge0 {isJudge0Configured() ? 'Connected' : 'Not Configured'}
+            </span> */}
+          </div>
+          
+          <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-lg ${
+            //isAIConfigured() ?
+               'bg-purple-500/20 border border-purple-500/30' 
+              //: 'bg-yellow-500/20 border border-yellow-500/30'
+          }`}>
+            {/* <div className={`w-2 h-2 rounded-full ${
+              isAIConfigured() ? 'bg-purple-400 animate-pulse' : 'bg-yellow-400'
+            }`}></div>
+            <span className={`text-sm ${
+              isAIConfigured() ? 'text-purple-300' : 'text-yellow-300'
+            }`}>
+              AI {isAIConfigured() ? 'Ready' : 'Fallback Mode'}
+            </span> */}
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -471,8 +555,8 @@ function ConceptPage({ course, milestone, concept, onNavigate, userProgress, set
                   <h3 className="text-purple-300 font-semibold mb-2">✓ Success Criteria</h3>
                   <ul className="text-gray-300 space-y-1">
                     <li>• Code runs without errors</li>
-                    <li>• All variables are correctly defined</li>
-                    <li>• Proper data types are used</li>
+                    <li>• All requirements are met</li>
+                    <li>• Proper syntax is used</li>
                   </ul>
                 </div>
               </div>
@@ -483,20 +567,25 @@ function ConceptPage({ course, milestone, concept, onNavigate, userProgress, set
         <div className="space-y-4">
           <div className="bg-slate-900 rounded-xl border border-white/10 overflow-hidden">
             <div className="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-white/10">
-              <span className="text-gray-400 text-sm">Code Editor</span>
+              <span className="text-gray-400 text-sm flex items-center space-x-2">
+                <Code className="w-4 h-4" />
+                <span>{course.title} Editor</span>
+              </span>
               <div className="flex space-x-2">
                 <button
                   onClick={runCode}
-                  className="flex items-center space-x-2 px-3 py-1 bg-green-500/20 text-green-300 rounded hover:bg-green-500/30 transition text-sm"
+                  disabled={isRunning}
+                  className="flex items-center space-x-2 px-3 py-1 bg-green-500/20 text-green-300 rounded hover:bg-green-500/30 transition text-sm disabled:opacity-50"
                 >
-                  <Play className="w-4 h-4" />
+                  {isRunning ? <Loader className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                   <span>Run</span>
                 </button>
                 <button
                   onClick={submitCode}
-                  className="flex items-center space-x-2 px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 transition text-sm"
+                  disabled={isRunning}
+                  className="flex items-center space-x-2 px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600 transition text-sm disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
+                  {isRunning ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   <span>Submit</span>
                 </button>
               </div>
@@ -506,31 +595,63 @@ function ConceptPage({ course, milestone, concept, onNavigate, userProgress, set
               onChange={(e) => setCode(e.target.value)}
               className="w-full h-64 bg-slate-900 text-gray-100 p-4 font-mono text-sm focus:outline-none resize-none"
               spellCheck="false"
+              placeholder="Write your code here..."
+              disabled={isRunning}
             />
           </div>
 
           {output && (
-            <div className="bg-slate-900 rounded-xl border border-white/10 p-4">
-              <h3 className="text-gray-400 text-sm mb-2">Output:</h3>
+            <div className={`bg-slate-900 rounded-xl border ${executionError ? 'border-red-500/30' : 'border-white/10'} p-4`}>
+              <h3 className="text-gray-400 text-sm mb-2 flex items-center space-x-2">
+                {executionError ? <AlertCircle className="w-4 h-4 text-red-400" /> : <Zap className="w-4 h-4" />}
+                <span>Output:</span>
+              </h3>
               <pre className="text-gray-100 font-mono text-sm whitespace-pre-wrap">{output}</pre>
             </div>
           )}
 
-          <button
-            onClick={getAIHelp}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition"
-          >
-            <Sparkles className="w-5 h-5" />
-            <span>Ask AI for Help</span>
-          </button>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => getAIHelp('hint')}
+              disabled={aiLoading}
+              className="flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition text-sm disabled:opacity-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Hint</span>
+            </button>
+            <button
+              onClick={() => getAIHelp('debug')}
+              disabled={aiLoading}
+              className="flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition text-sm disabled:opacity-50"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Debug</span>
+            </button>
+            <button
+              onClick={() => getAIHelp('explain')}
+              disabled={aiLoading}
+              className="flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition text-sm disabled:opacity-50"
+            >
+              <Book className="w-4 h-4" />
+              <span>Explain</span>
+            </button>
+          </div>
 
           {showAI && (
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
-              <h3 className="text-purple-300 font-semibold mb-2 flex items-center space-x-2">
+            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-4">
+              <h3 className="text-purple-300 font-semibold mb-3 flex items-center space-x-2">
                 <Sparkles className="w-5 h-5" />
                 <span>AI Assistant</span>
+                {aiLoading && <Loader className="w-4 h-4 animate-spin" />}
               </h3>
-              <div className="text-gray-300 text-sm whitespace-pre-wrap">{aiHelp}</div>
+              {aiLoading ? (
+                <div className="flex items-center space-x-2 text-gray-400">
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span>AI is thinking...</span>
+                </div>
+              ) : (
+                <div className="text-gray-300 text-sm whitespace-pre-wrap">{aiHelp}</div>
+              )}
             </div>
           )}
         </div>

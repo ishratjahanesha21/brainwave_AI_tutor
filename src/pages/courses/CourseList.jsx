@@ -1,12 +1,12 @@
 
 import { useNavigate } from "react-router-dom";
 //import CourseCard from "./CourseCard";
-import Section from "../components/Section";
-import Heading from "../components/Heading";
-import Arrow from "../assets/svg/Arrow";
-import { GradientLight } from "../components/design/Benefits";
-import ClipPath from "../assets/svg/ClipPath";
-import { coursesData } from "../constants";
+import Section from "../../components/Section";
+import Heading from "../../components/Heading";
+import Arrow from "../../assets/svg/Arrow";
+import { GradientLight } from "../../components/design/Benefits";
+import ClipPath from "../../assets/svg/ClipPath";
+import { coursesData } from "../../constants";
 
 
 const CourseList = () => {
@@ -56,7 +56,7 @@ const CourseList = () => {
                   <p className="ml-auto font-code text-xs font-bold text-n-1 uppercase tracking-wider"
                    onClick={() => navigate(`/course/${item.id}`)}
                   >
-                    Explore more
+                    Start Learning
                   </p>
                   <Arrow />
                 </div>
