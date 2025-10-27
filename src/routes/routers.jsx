@@ -4,10 +4,14 @@ import CourseList from "../pages/courses/CourseList";
 //
 // import LearningJourney from "../pages/LearningJourney";
 import App from"../App"
-import Login from "../components/auth/Login";
-import Singup from "../components/auth/Singup";
 import CodeEntry from "../components/codexplainer/CodeEntry";
 import Landingpage from "../pages/Landingpage";
+import CourseDetailPage from "../pages/courses/CourseDetailPage";
+import ConceptPage from "../pages/courses/ConceptPage";
+import Login from "../components/auth/Login";
+import Signup from "../components/auth/Singup";
+import ProtectedRoute from "../components/ProtectedRoute";
+import Dashboard from "../pages/Dashboard";
 
 // const RouterWrapper = () => {
 //   const { isAuthenticated } = useAuth();
@@ -23,6 +27,7 @@ const router = createBrowserRouter([
    element: <App />,
    children: [
     {
+      index: true,
       path:"/",
       element:<Landingpage/>
     },
@@ -34,6 +39,33 @@ const router = createBrowserRouter([
       path: "/courses",
       element: <CourseList />, // Course list page
     },
+       
+       
+        {
+          path: "courses",
+          element: <CourseList /> // List all courses
+        },
+        {
+          path: "courses/:courseId",
+          element: <CourseDetailPage /> // Course detail with milestones
+        },
+        {
+          path: "courses/:courseId/milestone/:milestoneId/concept/:conceptId",
+          element:
+          <ProtectedRoute>
+
+          <ConceptPage /> 
+        </ProtectedRoute>
+        },
+        {
+          path:"/dashboard",
+          element:<ProtectedRoute>
+            <Dashboard/>
+          </ProtectedRoute>
+        }
+      
+      
+    
     // {
     //   path: "learning",
     //   children: [
@@ -63,7 +95,7 @@ const router = createBrowserRouter([
  
   {
     path:"/signup",
-    element:<Singup/> // Signup page
+    element:<Signup/> // Signup page
   }
 ]);
 
