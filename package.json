@@ -12,8 +12,8 @@
   "dependencies": {
     "axios": "^1.12.2",
     "lucide-react": "^0.545.0",
-    "react": "^19.3.0-canary-2bcbf254-20251020",
-    "react-dom": "^19.3.0-canary-2bcbf254-20251020",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-just-parallax": "^3.1.16",
     "react-markdown": "^8.0.7",
     "react-router-dom": "^6.22.1",
